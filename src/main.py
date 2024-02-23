@@ -20,7 +20,7 @@ def seed_everything(seed: int = 42):
 
 if __name__ == "__main__":
     seed_everything(seed=42)
-    # Initialization of the agent. Replace DummyAgent with your custom agent implementation.
+    # Initialization of the agent.    
     agent = ProjectAgent()
     agent.load()
     # Keep the following lines to evaluate your agent unchanged.
