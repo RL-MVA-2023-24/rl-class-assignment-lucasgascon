@@ -17,6 +17,7 @@ env = TimeLimit(
 # Don't modify the methods names and signatures, but you can add methods.
 # ENJOY!
 
+
 class ReplayBuffer:
     def __init__(self, capacity, device):
         self.capacity = capacity # capacity of the buffer
@@ -71,18 +72,19 @@ class DQN2(nn.Module):
 
 class ProjectAgent:
     def __init__(self):
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.state_dim = 6
         self.action_size = 4
         self.batch_size = 200
         self.gamma = 0.99
-        self.length_episode = 200  # The time wrapper limits the number of steps in an episode at 200.
+        self.length_episode = 100  # The time wrapper limits the number of steps in an episode at 200.
         self.learning_rate = 0.005
         self.exploration_rate = 1.0
         self.exploration_decay = 0.995
         self.min_exploration_rate = 0.01
-        self.memory = ReplayBuffer(10000, "cpu")
+        self.memory = ReplayBuffer(10000, device)
         self.max_episode = 100
-        self.model = DQN2(self.state_dim, self.action_size)
+        self.model = DQN2(self.state_dim, self.action_size).to(device)
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.learning_rate)
         self.criterion = nn.MSELoss()
     
