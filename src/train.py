@@ -81,7 +81,7 @@ class ProjectAgent:
         self.exploration_decay = 0.995
         self.min_exploration_rate = 0.01
         self.memory = ReplayBuffer(10000, "cpu")
-        self.max_episode = 1000
+        self.max_episode = 100
         self.model = DQN2(self.state_dim, self.action_size)
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.learning_rate)
         self.criterion = nn.MSELoss()
