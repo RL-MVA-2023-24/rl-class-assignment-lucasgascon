@@ -77,7 +77,7 @@ class ProjectAgent:
     #     )
     #     return DQN.to(self.device)
     
-    def build_model(env, hidden_size, depth):
+    def build_model(self, env, hidden_size, depth):
         in_layer = nn.Linear(env.observation_space.shape[0], hidden_size)
         hidden_layers = nn.ModuleList([nn.Linear(hidden_size, hidden_size) for _ in range(depth - 1)])
         out_layer = nn.Linear(hidden_size, env.action_space.n)
