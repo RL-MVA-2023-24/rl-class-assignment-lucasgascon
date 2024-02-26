@@ -38,6 +38,19 @@ class ReplayBuffer:
         return list(map(lambda x:torch.Tensor(np.array(x)).to(self.device), list(zip(*batch))))
     def __len__(self):
         return len(self.data)
+    
+class DQN(nn.Module):
+    def __init__(self, env, hidden_size, depth):
+        super(DQN, self).__init__()
+        self.in_layer = nn.Linear(env.observation_space.shape[0], hidden_size)
+        self.hidden_layers = nn.ModuleList([nn.Linear(hidden_size, hidden_size) for _ in range(depth - 1)])
+        self.out_layer = nn.Linear(hidden_size, env.action_space.n)
+
+    def forward(self, x):
+        x = F.relu(self.in_layer(x))
+        for hidden_layer in self.hidden_layers:
+            x = F.relu(hidden_layer(x))
+        return self.out_layer(x)
 
 class ProjectAgent:
     def __init__(self):
@@ -53,7 +66,7 @@ class ProjectAgent:
         self.memory = ReplayBuffer(self.memory_capacity, self.device)
         self.model_hidden_size = 256
         self.model_depth = 10
-        self.model = self.build_model(env, hidden_size=self.model_hidden_size, depth = self.model_depth)
+        self.model = self.build_model(env, hidden_size=self.model_hidden_size, depth = self.model_depth).to(self.device)
         self.target_model = deepcopy(self.model).to(self.device)
         self.update_target_strategy = 'replace'
         self.update_target_freq = 20
@@ -66,29 +79,9 @@ class ProjectAgent:
         self.epsilon_delay = 1000
         self.epsilon_step = (self.epsilon_max-self.epsilon_min)/self.epsilon_stop
         self.monitoring_nb_trials = 0
-        
-    # def build_model(self, env, hidden_size=32):
-    #     DQN = nn.Sequential(
-    #         nn.Linear(env.observation_space.shape[0], hidden_size),
-    #         nn.ReLU(),
-    #         nn.Linear(hidden_size, hidden_size),
-    #         nn.ReLU(),
-    #         nn.Linear(hidden_size, env.action_space.n)
-    #     )
-    #     return DQN.to(self.device)
     
     def build_model(self, env, hidden_size, depth):
-        in_layer = nn.Linear(env.observation_space.shape[0], hidden_size)
-        hidden_layers = nn.ModuleList([nn.Linear(hidden_size, hidden_size) for _ in range(depth - 1)])
-        out_layer = nn.Linear(hidden_size, env.action_space.n)
-
-        def forward(x):
-            x = nn.ReLU(in_layer(x))
-            for hidden_layer in hidden_layers:
-                x = nn.ReLU(hidden_layer(x))
-            return out_layer(x)
-
-        return forward
+        return DQN(env, hidden_size, depth)
     
     def greedy_action(self, network, state):
         with torch.no_grad():
