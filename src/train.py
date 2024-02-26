@@ -40,31 +40,31 @@ class ReplayBuffer:
         return len(self.data)
 
 class ProjectAgent:
-    def __init__(self, config):
-        self.device = config['device'] if 'device' in config.keys() else torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        self.batch_size = config['batch_size'] if 'batch_size' in config.keys() else 256
-        self.gamma = config['gamma'] if 'gamma' in config.keys() else 0.98 
-        self.length_episode = config['length_episode'] if 'length_episode' in config.keys() else 200
-        self.learning_rate = config['learning_rate'] if 'learning_rate' in config.keys() else 0.001
-        self.nb_gradient_steps = config['nb_gradient_steps'] if 'nb_gradient_steps' in config.keys() else 3
-        self.min_exploration_rate = config['min_exploration_rate'] if 'min_exploration_rate' in config.keys() else 0.01
-        self.memory_capacity = config['memory_capacity'] if 'memory_capacity' in config.keys() else 100000
-        self.max_episode = config['max_episode'] if 'max_episode' in config.keys() else 100
-        self.memory = ReplayBuffer(self.memory_capacity, self.device) if 'memory' in config.keys() else ReplayBuffer(self.memory_capacity, self.device)
-        self.hidden_size = config['hidden_size'] if 'hidden_size' in config.keys() else 32
+    def __init__(self):
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.batch_size = 256
+        self.gamma = 0.98 
+        self.length_episode = 200
+        self.learning_rate = 0.001
+        self.nb_gradient_steps = 3
+        self.min_exploration_rate = 0.01
+        self.memory_capacity = 100000
+        self.max_episode = 100
+        self.memory = ReplayBuffer(self.memory_capacity, self.device)
+        self.hidden_size = 32
         self.model = self.build_model(env, hidden_size=self.hidden_size)
         self.target_model = deepcopy(self.model).to(self.device)
-        self.update_target_strategy = config['update_target_strategy'] if 'update_target_strategy' in config.keys() else 'replace'
-        self.update_target_freq = config['update_target_freq'] if 'update_target_freq' in config.keys() else 20
-        self.update_target_tau = config['update_target_tau'] if 'update_target_tau' in config.keys() else 0.005
+        self.update_target_strategy = 'replace'
+        self.update_target_freq = 20
+        self.update_target_tau = 0.005
         self.criterion = nn.MSELoss()
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.learning_rate)
-        self.epsilon_max = config['epsilon_max'] if 'epsilon_max' in config.keys() else 1.
-        self.epsilon_min = config['epsilon_min'] if 'epsilon_min' in config.keys() else 0.01
-        self.epsilon_stop = config['epsilon_decay_period'] if 'epsilon_decay_period' in config.keys() else 10000
-        self.epsilon_delay = config['epsilon_delay_decay'] if 'epsilon_delay_decay' in config.keys() else 1000
+        self.epsilon_max = 1.
+        self.epsilon_min = 0.01
+        self.epsilon_stop = 10000
+        self.epsilon_delay = 1000
         self.epsilon_step = (self.epsilon_max-self.epsilon_min)/self.epsilon_stop
-        self.monitoring_nb_trials = config['monitoring_nb_trials'] if 'monitoring_nb_trials' in config.keys() else 0
+        self.monitoring_nb_trials = 0
         
     def build_model(self, env, hidden_size=32):
         DQN = nn.Sequential(
