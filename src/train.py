@@ -51,8 +51,9 @@ class ProjectAgent:
         self.memory_capacity = 100000
         self.max_episode = 100
         self.memory = ReplayBuffer(self.memory_capacity, self.device)
-        self.hidden_size = 32
-        self.model = self.build_model(env, hidden_size=self.hidden_size)
+        self.model_hidden_size = 256
+        self.model_depth = 10
+        self.model = self.build_model(env, hidden_size=self.model_hidden_size, depth = self.model_depth)
         self.target_model = deepcopy(self.model).to(self.device)
         self.update_target_strategy = 'replace'
         self.update_target_freq = 20
@@ -66,15 +67,28 @@ class ProjectAgent:
         self.epsilon_step = (self.epsilon_max-self.epsilon_min)/self.epsilon_stop
         self.monitoring_nb_trials = 0
         
-    def build_model(self, env, hidden_size=32):
-        DQN = nn.Sequential(
-            nn.Linear(env.observation_space.shape[0], hidden_size),
-            nn.ReLU(),
-            nn.Linear(hidden_size, hidden_size),
-            nn.ReLU(),
-            nn.Linear(hidden_size, env.action_space.n)
-        )
-        return DQN.to(self.device)
+    # def build_model(self, env, hidden_size=32):
+    #     DQN = nn.Sequential(
+    #         nn.Linear(env.observation_space.shape[0], hidden_size),
+    #         nn.ReLU(),
+    #         nn.Linear(hidden_size, hidden_size),
+    #         nn.ReLU(),
+    #         nn.Linear(hidden_size, env.action_space.n)
+    #     )
+    #     return DQN.to(self.device)
+    
+    def build_model(env, hidden_size, depth):
+        in_layer = nn.Linear(env.observation_space.shape[0], hidden_size)
+        hidden_layers = nn.ModuleList([nn.Linear(hidden_size, hidden_size) for _ in range(depth - 1)])
+        out_layer = nn.Linear(hidden_size, env.action_space.n)
+
+        def forward(x):
+            x = nn.ReLU(in_layer(x))
+            for hidden_layer in hidden_layers:
+                x = nn.ReLU(hidden_layer(x))
+            return out_layer(x)
+
+        return forward
     
     def greedy_action(self, network, state):
         with torch.no_grad():
@@ -205,8 +219,13 @@ class ProjectAgent:
         return episode_return, MC_avg_discounted_reward, MC_avg_total_reward, V_init_state
     
     def save(self, path):
-        torch.save(self.model, path)
+        torch.save(self.model.state_dict(), path)
 
     def load(self):
-        self.train(env, self.max_episode)
-        return torch.load("model.pth")
+        self.model.load_state_dict(torch.load("agent.pth", map_location='cpu'))
+        self.model.eval()
+
+if __name__ == "__main__":
+    agent = ProjectAgent()
+    episode_return, MC_avg_discounted_reward, MC_avg_total_reward, V_init_state = agent.train(env, 100)
+    agent.save("agent.pth")
