@@ -52,6 +52,27 @@ class DQN(nn.Module):
             x = F.relu(hidden_layer(x))
         return self.out_layer(x)
 
+config = {
+        'max_episode': 100,
+        'batch_size': 512,
+        'gamma': 0.98,
+        'length_episode': 200,
+        'learning_rate': 0.001,
+        'nb_gradient_steps': 3,
+        'min_exploration_rate': 0.01,
+        'memory_capacity': 100000,
+        'hidden_size': 256,
+        'depth': 10,
+        'update_target_strategy': 'replace',
+        'update_target_freq': 20,
+        'update_target_tau': 0.005,
+        'epsilon_max': 1.,
+        'epsilon_min': 0.01,
+        'epsilon_stop': 1000,
+        'epsilon_delay_decay': 20
+    
+    }
+
 class ProjectAgent:
     def __init__(self):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -221,27 +242,6 @@ class ProjectAgent:
         self.model.eval()
 
 if __name__ == "__main__":
-    
-    config = {
-        'max_episode': 100,
-        'batch_size': 512,
-        'gamma': 0.98,
-        'length_episode': 200,
-        'learning_rate': 0.001,
-        'nb_gradient_steps': 3,
-        'min_exploration_rate': 0.01,
-        'memory_capacity': 100000,
-        'hidden_size': 256,
-        'depth': 10,
-        'update_target_strategy': 'replace',
-        'update_target_freq': 20,
-        'update_target_tau': 0.005,
-        'epsilon_max': 1.,
-        'epsilon_min': 0.01,
-        'epsilon_stop': 1000,
-        'epsilon_delay_decay': 20
-    
-    }
 
     agent = ProjectAgent()
     episode_return, MC_avg_discounted_reward, MC_avg_total_reward, V_init_state = agent.train(env, config['max_episode'])
