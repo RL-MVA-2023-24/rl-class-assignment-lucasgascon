@@ -238,7 +238,7 @@ class ProjectAgent:
         torch.save(self.model.state_dict(), path)
 
     def load(self):
-        self.model.load_state_dict(torch.load("agent.pth", map_location='cpu'))
+        self.model.load_state_dict(torch.load("src/agent.pth", map_location='cpu'))
         self.model.eval()
 
 if __name__ == "__main__":
@@ -253,6 +253,4 @@ if __name__ == "__main__":
     print('score_agent_dr:', score_agent_dr)
     
     agent.save("agent.pth")
-
-    
          
