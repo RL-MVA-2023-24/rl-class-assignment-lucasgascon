@@ -10,6 +10,7 @@ import argparse
 from evaluate import evaluate_HIV, evaluate_HIV_population
 import itertools
 from copy import deepcopy
+import os
 
 env = TimeLimit(
     env=HIVPatient(domain_randomization=True), max_episode_steps=200
@@ -54,12 +55,12 @@ class DQN(nn.Module):
 config = {
         'max_episode': 5000,
         'criterion': nn.SmoothL1Loss(),
-        'gradient_step': 1,
+        'gradient_step': 2,
         'periode_update_best_score': 20,
         'monitoring_nb_trials': 0,
-        'gamma': 0.97,
-        'hidden_size': 512,
-        'depth': 5,
+        'gamma': 0.98,
+        'hidden_size': 256,
+        'depth': 4,
         # 'batch_size': 256,
         # 'learning_rate': 0.001,
         # 'nb_gradient_steps': 3,
@@ -208,7 +209,7 @@ class ProjectAgent:
                 score_agent = evaluate_HIV(agent=self, nb_episode=1)
                 if episode > 0 and score_agent > best_score and episode % self.periode_update_best_score==0:
                     best_score = score_agent
-                    self.save("best_agent_4.pth")
+                    self.save(f"{os.getcwd()}/src/best_agent_4.pth")
                     print("Best score updated: ", "{:e}".format(best_score))
                 
                 # Monitoring
@@ -251,7 +252,7 @@ class ProjectAgent:
         torch.save(self.model.state_dict(), path)
 
     def load(self):
-        self.model.load_state_dict(torch.load("best_agent_4.pth", map_location='cpu'))
+        self.model.load_state_dict(torch.load(f"{os.getcwd()}/src/best_agent_4.pth", map_location='cpu'))
         self.model.eval()
 
 if __name__ == "__main__":
