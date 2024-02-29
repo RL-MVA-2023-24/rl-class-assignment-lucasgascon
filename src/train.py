@@ -9,11 +9,10 @@ import random
 import argparse
 from evaluate import evaluate_HIV, evaluate_HIV_population
 import itertools
-from sklearn.ensemble import RandomForestRegressor
 from copy import deepcopy
 
 env = TimeLimit(
-    env=HIVPatient(domain_randomization=False), max_episode_steps=200
+    env=HIVPatient(domain_randomization=True), max_episode_steps=200
 )  # The time wrapper limits the number of steps in an episode at 200.
 # Now is the floor is yours to implement the agent and train it.
 
@@ -53,34 +52,37 @@ class DQN(nn.Module):
         return self.out_layer(x)
 
 config = {
-        'max_episode': 100,
-        'batch_size': 512,
-        'gamma': 0.98,
-        'length_episode': 200,
-        'learning_rate': 0.001,
-        'nb_gradient_steps': 3,
-        'min_exploration_rate': 0.01,
-        'memory_capacity': 100000,
-        'hidden_size': 256,
-        'depth': 10,
-        'update_target_strategy': 'replace',
-        'update_target_freq': 20,
-        'update_target_tau': 0.005,
-        'epsilon_max': 1.,
-        'epsilon_min': 0.01,
-        'epsilon_stop': 1000,
-        'epsilon_delay_decay': 20
-    
+        'max_episode': 5000,
+        'criterion': nn.SmoothL1Loss(),
+        'gradient_step': 1,
+        'periode_update_best_score': 20,
+        'monitoring_nb_trials': 0,
+        'gamma': 0.97,
+        'hidden_size': 512,
+        'depth': 5,
+        # 'batch_size': 256,
+        # 'learning_rate': 0.001,
+        # 'nb_gradient_steps': 3,
+        # 'min_exploration_rate': 0.01,
+        # 'memory_capacity': 100000,
+        # 'hidden_size': 256,
+        # 'depth': 10,
+        # 'update_target_strategy': 'replace',
+        # 'update_target_freq': 20,
+        # 'update_target_tau': 0.005,
+        # 'epsilon_max': 1.,
+        # 'epsilon_min': 0.01,
+        # 'epsilon_stop': 1000,
+        # 'epsilon_delay_decay': 20
     }
 
 class ProjectAgent:
     def __init__(self):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        self.batch_size = config['batch_size'] if 'batch_size' in config else 512
+        self.batch_size = config['batch_size'] if 'batch_size' in config else 256
         self.gamma = config['gamma'] if 'gamma' in config else 0.98
-        self.length_episode = config['length_episode'] if 'length_episode' in config else 200
         self.learning_rate = config['learning_rate'] if 'learning_rate' in config else 0.001
-        self.nb_gradient_steps = config['nb_gradient_steps'] if 'nb_gradient_steps' in config else 3
+        self.nb_gradient_steps = config['nb_gradient_steps'] if 'nb_gradient_steps' in config else 2
         self.min_exploration_rate = config['min_exploration_rate'] if 'min_exploration_rate' in config else 0.01
         self.memory_capacity = config['memory_capacity'] if 'memory_capacity' in config else 100000
         self.max_episode = config['max_episode'] if 'max_episode' in config else 100
@@ -92,14 +94,15 @@ class ProjectAgent:
         self.update_target_strategy = config['update_target_strategy'] if 'update_target_strategy' in config else 'replace'
         self.update_target_freq = config['update_target_freq'] if 'update_target_freq' in config else 20
         self.update_target_tau = config['update_target_tau'] if 'update_target_tau' in config else 0.005
-        self.criterion = nn.MSELoss()
+        self.criterion = config['criterion'] if 'criterion' in config else nn.MSELoss()
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.learning_rate)
         self.epsilon_max = config['epsilon_max'] if 'epsilon_max' in config else 1.
         self.epsilon_min = config['epsilon_min'] if 'epsilon_min' in config else 0.01
-        self.epsilon_stop = config['epsilon_stop'] if 'epsilon_stop' in config else 1000
-        self.epsilon_delay = config['epsilon_delay_decay'] if 'epsilon_delay_decay' in config else 20
+        self.epsilon_stop = config['epsilon_stop'] if 'epsilon_stop' in config else 10000
+        self.epsilon_delay = config['epsilon_delay_decay'] if 'epsilon_delay_decay' in config else 600
         self.epsilon_step = (self.epsilon_max - self.epsilon_min) / self.epsilon_stop
-        self.monitoring_nb_trials = 0
+        self.monitoring_nb_trials = config['monitoring_nb_trials'] if 'monitoring_nb_trials' in config else 0
+        self.periode_update_best_score = config['periode_update_best_score'] if 'periode_update_best_score' in config else 10
     
     def build_model(self, env, hidden_size, depth):
         return DQN(env, hidden_size, depth)
@@ -153,12 +156,8 @@ class ProjectAgent:
     def act(self, observation, use_random=False):
         if use_random:
             return env.action_space.sample()
-        # Qsa = []
-        # for a in range(env.action_space.n):
-        #     sa = np.append(observation,a).reshape(1, -1)
-        #     Qsa.append(self.model(sa))
-        # action = np.argmax(Qsa)
-        return self.greedy_action(self.model, observation)
+        else:
+            return self.greedy_action(self.model, observation)
     
     def train(self, env, max_episode):
         episode_return = []
@@ -170,6 +169,7 @@ class ProjectAgent:
         state, _ = env.reset()
         epsilon = self.epsilon_max
         step = 0
+        best_score = 0
         while episode < max_episode:
             # update epsilon
             if step > self.epsilon_delay:
@@ -203,6 +203,14 @@ class ProjectAgent:
             step += 1
             if done or trunc:
                 episode += 1
+                
+                # Evaluation
+                score_agent = evaluate_HIV(agent=self, nb_episode=1)
+                if episode > 0 and score_agent > best_score and episode % self.periode_update_best_score==0:
+                    best_score = score_agent
+                    self.save("best_agent_4.pth")
+                    print("Best score updated: ", "{:e}".format(best_score))
+                
                 # Monitoring
                 if self.monitoring_nb_trials>0:
                     MC_dr, MC_tr = self.MC_eval(env, self.monitoring_nb_trials)    # NEW NEW NEW
@@ -218,7 +226,12 @@ class ProjectAgent:
                           ", MC tot ", '{:6.2f}'.format(MC_tr),
                           ", MC disc ", '{:6.2f}'.format(MC_dr),
                           ", V0 ", '{:6.2f}'.format(V0),
-                          sep='')
+                          sep='')  
+                        
+                    # if MC_tr > best_score:
+                    #     best_score = MC_tr
+                    #     self.save("best_agent.pth")
+                    
                 else:
                     episode_return.append(episode_cum_reward)
                     print("Episode ", '{:2d}'.format(episode), 
@@ -227,18 +240,18 @@ class ProjectAgent:
                           ", ep return ", '{:4.1f}'.format(episode_cum_reward), 
                           sep='')
 
-                
                 state, _ = env.reset()
                 episode_cum_reward = 0
             else:
                 state = next_state
+        
         return episode_return, MC_avg_discounted_reward, MC_avg_total_reward, V_init_state
     
     def save(self, path):
         torch.save(self.model.state_dict(), path)
 
     def load(self):
-        self.model.load_state_dict(torch.load("src/agent.pth", map_location='cpu'))
+        self.model.load_state_dict(torch.load("best_agent_4.pth", map_location='cpu'))
         self.model.eval()
 
 if __name__ == "__main__":
@@ -249,8 +262,8 @@ if __name__ == "__main__":
     score_agent = evaluate_HIV(agent=agent, nb_episode=1)
     score_agent_dr = evaluate_HIV_population(agent=agent, nb_episode=15)
     
-    print('score_agent:', score_agent)
-    print('score_agent_dr:', score_agent_dr)
+    print('agent name: best_agent_4.pth')
+    print('config:', config)
     
-    agent.save("agent.pth")
-         
+    print("score_agent:" + "{:e}".format(score_agent))
+    print("score_agent_dr:" + "{:e}".format(score_agent_dr))
