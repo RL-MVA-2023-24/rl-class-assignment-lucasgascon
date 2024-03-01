@@ -242,7 +242,7 @@ class ProjectAgent:
         torch.save(self.model.state_dict(), path)
 
     def load(self):
-        self.model.load_state_dict(torch.load(f"{os.getcwd()}/" + self.model_name + '.pth', map_location='cpu'))
+        self.model.load_state_dict(torch.load(f"{os.getcwd()}/src/" + self.model_name + '.pth', map_location='cpu'))
         self.model.eval()
 
 if __name__ == "__main__":
