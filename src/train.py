@@ -52,30 +52,19 @@ class DQN(nn.Module):
             x = F.relu(hidden_layer(x))
         return self.out_layer(x)
 
-config = {
-        'max_episode': 5000,
-        'criterion': nn.SmoothL1Loss(),
-        'gradient_step': 1,
-        'periode_update_best_score': 20,
-        'monitoring_nb_trials': 0,
-        'gamma': 0.97,
-        'hidden_size': 512,
-        'depth': 5,
-        # 'batch_size': 256,
-        # 'learning_rate': 0.001,
-        # 'nb_gradient_steps': 3,
-        # 'min_exploration_rate': 0.01,
-        # 'memory_capacity': 100000,
-        # 'hidden_size': 256,
-        # 'depth': 10,
-        # 'update_target_strategy': 'replace',
-        # 'update_target_freq': 20,
-        # 'update_target_tau': 0.005,
-        # 'epsilon_max': 1.,
-        # 'epsilon_min': 0.01,
-        # 'epsilon_stop': 1000,
-        # 'epsilon_delay_decay': 20
-    }
+parser = argparse.ArgumentParser()
+parser.add_argument('--max_episode', type=int, default=5000)
+parser.add_argument('--gradient_step', type=int, default=2)
+parser.add_argument('--periode_update_best_score', type=int, default=20)
+parser.add_argument('--monitoring_nb_trials', type=int, default=0)
+parser.add_argument('--gamma', type=float, default=0.98)
+parser.add_argument('--hidden_size', type=int, default=512)
+parser.add_argument('--depth', type=int, default=5)
+parser.add_argument('--batch_size', type=int, default=256)
+parser.add_argument('--model_name', type=str, default='best_agent_11')
+
+args = parser.parse_args()
+config = vars(args)
 
 class ProjectAgent:
     def __init__(self):
@@ -104,6 +93,7 @@ class ProjectAgent:
         self.epsilon_step = (self.epsilon_max - self.epsilon_min) / self.epsilon_stop
         self.monitoring_nb_trials = config['monitoring_nb_trials'] if 'monitoring_nb_trials' in config else 0
         self.periode_update_best_score = config['periode_update_best_score'] if 'periode_update_best_score' in config else 10
+        self.model_name = config['model_name'] if 'model_name' in config else 'best_agent'
     
     def build_model(self, env, hidden_size, depth):
         return DQN(env, hidden_size, depth)
@@ -209,7 +199,7 @@ class ProjectAgent:
                 score_agent = evaluate_HIV(agent=self, nb_episode=1)
                 if episode > 0 and score_agent > best_score and episode % self.periode_update_best_score==0:
                     best_score = score_agent
-                    self.save(f"{os.getcwd()}/src/best_agent_4.pth")
+                    self.save(f"{os.getcwd()}/" + self.model_name + '.pth')
                     print("Best score updated: ", "{:e}".format(best_score))
                 
                 # Monitoring
@@ -252,7 +242,7 @@ class ProjectAgent:
         torch.save(self.model.state_dict(), path)
 
     def load(self):
-        self.model.load_state_dict(torch.load(f"{os.getcwd()}/src/best_agent_4.pth", map_location='cpu'))
+        self.model.load_state_dict(torch.load(f"{os.getcwd()}/" + self.model_name + '.pth', map_location='cpu'))
         self.model.eval()
 
 if __name__ == "__main__":
@@ -260,11 +250,11 @@ if __name__ == "__main__":
     agent = ProjectAgent()
     episode_return, MC_avg_discounted_reward, MC_avg_total_reward, V_init_state = agent.train(env, config['max_episode'])
     
-    score_agent = evaluate_HIV(agent=agent, nb_episode=1)
-    score_agent_dr = evaluate_HIV_population(agent=agent, nb_episode=15)
+    # score_agent = evaluate_HIV(agent=agent, nb_episode=1)
+    # score_agent_dr = evaluate_HIV_population(agent=agent, nb_episode=15)
     
-    print('agent name: best_agent_4.pth')
+    print("agent name:" + config['model_name'] + ".pth")
     print('config:', config)
     
-    print("score_agent:" + "{:e}".format(score_agent))
-    print("score_agent_dr:" + "{:e}".format(score_agent_dr))
+    # print("score_agent:" + "{:e}".format(score_agent))
+    # print("score_agent_dr:" + "{:e}".format(score_agent_dr))
