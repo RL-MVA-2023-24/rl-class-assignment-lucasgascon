@@ -54,17 +54,17 @@ class DQN(nn.Module):
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--max_episode', type=int, default=4000)
-parser.add_argument('--gradient_step', type=int, default=1)
+parser.add_argument('--gradient_step', type=int, default=3)
 parser.add_argument('--monitoring_freq', type=int, default=50)
 parser.add_argument('--monitoring_nb_trials', type=int, default=0)
 parser.add_argument('--gamma', type=float, default=0.99)
-parser.add_argument('--hidden_size', type=int, default=256)
+parser.add_argument('--hidden_size', type=int, default=512)
 parser.add_argument('--depth', type=int, default=5)
 parser.add_argument('--batch_size', type=int, default=512)
 parser.add_argument('--update_target_freq', type=int, default=400)
 parser.add_argument('--epsilon_decay_period', type=int, default=10000)
 parser.add_argument('-epsilon_delay_decay', type=int, default=600)
-parser.add_argument('--model_name', type=str, default='no_monitoring')
+parser.add_argument('--model_name', type=str, default='best_agent_12')
 parser.add_argument('--delay_save', type=int, default=100)
 
 args = parser.parse_args()
@@ -82,7 +82,7 @@ class ProjectAgent:
         self.max_episode = config['max_episode'] if 'max_episode' in config else 100
         self.memory = ReplayBuffer(self.memory_capacity, self.device)
         self.model_hidden_size = config['hidden_size'] if 'hidden_size' in config else 256
-        self.model_depth = config['depth'] if 'depth' in config else 10
+        self.model_depth = config['depth'] if 'depth' in config else 5
         self.model = self.build_model(env, hidden_size=self.model_hidden_size, depth=self.model_depth).to(self.device)
         self.target_model = deepcopy(self.model).to(self.device)
         self.update_target_strategy = config['update_target_strategy'] if 'update_target_strategy' in config else 'replace'
@@ -95,7 +95,7 @@ class ProjectAgent:
         self.epsilon_stop = config['epsilon_stop'] if 'epsilon_stop' in config else 10000
         self.epsilon_delay = config['epsilon_delay_decay'] if 'epsilon_delay_decay' in config else 600
         self.epsilon_step = (self.epsilon_max - self.epsilon_min) / self.epsilon_stop
-        self.monitoring_nb_trials = config['monitoring_nb_trials'] if 'monitoring_nb_trials' in config else 1
+        self.monitoring_nb_trials = config['monitoring_nb_trials'] if 'monitoring_nb_trials' in config else 0
         self.monitoring_freq = config['monitoring_freq'] if 'monitoring_freq' in config else 50
         self.model_name = config['model_name'] if 'model_name' in config else 'best_agent'
         self.delay_save = config['delay_save'] if 'delay_save' in config else 100
@@ -228,17 +228,16 @@ class ProjectAgent:
                           ", batch size ", '{:4d}'.format(len(self.memory)), 
                           ", ep return ", '{:4.1f}'.format(episode_cum_reward), 
                           sep='')
-                        
+                    
                 # Evaluation
                 score_agent = evaluate_HIV(agent=self, nb_episode=1)
                 if (episode > self.delay_save) and (score_agent > best_score):
                     best_score = score_agent
                     self.save(f"{os.getcwd()}/" + self.model_name + '.pth')
                     print("Best score updated: ", "{:e}".format(best_score))
-
+                
                 state, _ = env.reset()
                 episode_cum_reward = 0
-                
             else:
                 state = next_state
         
@@ -264,3 +263,5 @@ if __name__ == "__main__":
     
     # print("score_agent:" + "{:e}".format(score_agent))
     # print("score_agent_dr:" + "{:e}".format(score_agent_dr))
+    
+    
