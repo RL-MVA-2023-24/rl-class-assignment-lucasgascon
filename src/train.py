@@ -64,7 +64,7 @@ parser.add_argument('--batch_size', type=int, default=512)
 parser.add_argument('--update_target_freq', type=int, default=400)
 parser.add_argument('--epsilon_decay_period', type=int, default=10000)
 parser.add_argument('-epsilon_delay_decay', type=int, default=600)
-parser.add_argument('--model_name', type=str, default='model_21')
+parser.add_argument('--model_name', type=str, default='no_monitoring')
 parser.add_argument('--delay_save', type=int, default=100)
 
 args = parser.parse_args()
