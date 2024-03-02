@@ -47,6 +47,27 @@ class DQN(nn.Module):
             x = F.relu(hidden_layer(x))
         return self.out_layer(x)
 
+config = {
+        'max_episode': 1000,
+        'model_name': 'new_best_agent',
+        'gamma': 0.95,
+        'batch_size': 256,
+        'buffer_size': 100000,
+        'epsilon_max': 1.,
+        'epsilon_min': 0.01,
+        'epsilon_decay_period': 10000,
+        'epsilon_delay_decay': 20,
+        'hidden_size': 256,
+        'depth': 5,
+        'criterion': torch.nn.SmoothL1Loss(),
+        'learning_rate': 0.001,
+        'gradient_steps': 2,
+        'update_target_strategy': 'replace',
+        'update_target_freq': 20,
+        'update_target_tau': 0.005,
+        'monitoring_nb_trials': 0,
+        'monitoring_freq': 10
+    }
 
 class ProjectAgent:
     def __init__(self):
@@ -219,21 +240,21 @@ if __name__ == "__main__":
     config = {
         'max_episode': 1000,
         'model_name': 'new_best_agent',
-        'gamma': 0.9,
-        'batch_size': 1024,
-        'buffer_size': 1000000,
+        'gamma': 0.95,
+        'batch_size': 256,
+        'buffer_size': 100000,
         'epsilon_max': 1.,
         'epsilon_min': 0.01,
         'epsilon_decay_period': 10000,
-        'epsilon_delay_decay': 2000,
+        'epsilon_delay_decay': 20,
         'hidden_size': 256,
         'depth': 5,
         'criterion': torch.nn.SmoothL1Loss(),
-        'learning_rate': 0.01,
-        'gradient_steps': 1,
-        'update_target_strategy': 'ema',
+        'learning_rate': 0.001,
+        'gradient_steps': 2,
+        'update_target_strategy': 'replace',
         'update_target_freq': 20,
-        'update_target_tau': 0.05,
+        'update_target_tau': 0.005,
         'monitoring_nb_trials': 0,
         'monitoring_freq': 10
     }
