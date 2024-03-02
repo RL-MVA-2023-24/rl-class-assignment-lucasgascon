@@ -53,15 +53,19 @@ class DQN(nn.Module):
         return self.out_layer(x)
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--max_episode', type=int, default=5000)
-parser.add_argument('--gradient_step', type=int, default=2)
-parser.add_argument('--periode_update_best_score', type=int, default=20)
+parser.add_argument('--max_episode', type=int, default=4000)
+parser.add_argument('--gradient_step', type=int, default=1)
+parser.add_argument('--monitoring_freq', type=int, default=50)
 parser.add_argument('--monitoring_nb_trials', type=int, default=0)
-parser.add_argument('--gamma', type=float, default=0.98)
-parser.add_argument('--hidden_size', type=int, default=512)
+parser.add_argument('--gamma', type=float, default=0.99)
+parser.add_argument('--hidden_size', type=int, default=256)
 parser.add_argument('--depth', type=int, default=5)
-parser.add_argument('--batch_size', type=int, default=256)
-parser.add_argument('--model_name', type=str, default='best_agent_11')
+parser.add_argument('--batch_size', type=int, default=512)
+parser.add_argument('--update_target_freq', type=int, default=400)
+parser.add_argument('--epsilon_decay_period', type=int, default=10000)
+parser.add_argument('-epsilon_delay_decay', type=int, default=600)
+parser.add_argument('--model_name', type=str, default='model_21')
+parser.add_argument('--delay_save', type=int, default=100)
 
 args = parser.parse_args()
 config = vars(args)
@@ -91,9 +95,10 @@ class ProjectAgent:
         self.epsilon_stop = config['epsilon_stop'] if 'epsilon_stop' in config else 10000
         self.epsilon_delay = config['epsilon_delay_decay'] if 'epsilon_delay_decay' in config else 600
         self.epsilon_step = (self.epsilon_max - self.epsilon_min) / self.epsilon_stop
-        self.monitoring_nb_trials = config['monitoring_nb_trials'] if 'monitoring_nb_trials' in config else 0
-        self.periode_update_best_score = config['periode_update_best_score'] if 'periode_update_best_score' in config else 10
+        self.monitoring_nb_trials = config['monitoring_nb_trials'] if 'monitoring_nb_trials' in config else 1
+        self.monitoring_freq = config['monitoring_freq'] if 'monitoring_freq' in config else 50
         self.model_name = config['model_name'] if 'model_name' in config else 'best_agent'
+        self.delay_save = config['delay_save'] if 'delay_save' in config else 100
     
     def build_model(self, env, hidden_size, depth):
         return DQN(env, hidden_size, depth)
@@ -195,15 +200,8 @@ class ProjectAgent:
             if done or trunc:
                 episode += 1
                 
-                # Evaluation
-                score_agent = evaluate_HIV(agent=self, nb_episode=1)
-                if episode > 0 and score_agent > best_score and episode % self.periode_update_best_score==0:
-                    best_score = score_agent
-                    self.save(f"{os.getcwd()}/" + self.model_name + '.pth')
-                    print("Best score updated: ", "{:e}".format(best_score))
-                
                 # Monitoring
-                if self.monitoring_nb_trials>0:
+                if self.monitoring_nb_trials>0 and episode % self.monitoring_freq == 0:
                     MC_dr, MC_tr = self.MC_eval(env, self.monitoring_nb_trials)    # NEW NEW NEW
                     V0 = self.V_initial_state(env, self.monitoring_nb_trials)   # NEW NEW NEW
                     MC_avg_total_reward.append(MC_tr)   # NEW NEW NEW
@@ -230,9 +228,17 @@ class ProjectAgent:
                           ", batch size ", '{:4d}'.format(len(self.memory)), 
                           ", ep return ", '{:4.1f}'.format(episode_cum_reward), 
                           sep='')
+                        
+                # Evaluation
+                score_agent = evaluate_HIV(agent=self, nb_episode=1)
+                if (episode > self.delay_save) and (score_agent > best_score):
+                    best_score = score_agent
+                    self.save(f"{os.getcwd()}/" + self.model_name + '.pth')
+                    print("Best score updated: ", "{:e}".format(best_score))
 
                 state, _ = env.reset()
                 episode_cum_reward = 0
+                
             else:
                 state = next_state
         
