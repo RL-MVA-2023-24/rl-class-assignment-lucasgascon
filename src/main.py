@@ -4,7 +4,7 @@ import numpy as np
 import torch
 
 from evaluate import evaluate_HIV, evaluate_HIV_population
-from last_train import ProjectAgent  # Replace DummyAgent with your agent implementation
+from train import ProjectAgent
 
 
 def seed_everything(seed: int = 42):
