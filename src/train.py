@@ -50,7 +50,7 @@ class DQN(nn.Module):
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--max_episode', type=int, default=1000)
-parser.add_argument('--model_name', type=str, default='best_agent_2')
+parser.add_argument('--model_name', type=str, default='best_agent_1')
 parser.add_argument('--gamma', type=float, default=0.95)
 parser.add_argument('--batch_size', type=int, default=512)
 parser.add_argument('--buffer_size', type=int, default=1000000)
@@ -240,6 +240,8 @@ class ProjectAgent:
         self.model.eval()
         
 if __name__ == "__main__":
+    
+    config = {'model_name': 'best_agent_1',}
     
     agent = ProjectAgent()
     episode_return, MC_avg_discounted_reward, MC_avg_total_reward, V_init_state = agent.train(env, config['max_episode'])
